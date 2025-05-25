@@ -19,13 +19,33 @@ void Particle::spawnPc(const geometry_msgs::msg::Pose& startingPose,
     m_startingPose = startingPose;
     m_startingPose.position.x += d_x(gen);
     m_startingPose.position.y += d_y(gen);
-    m_startingPose.orientation.z += d_yaw(gen);
+    double siny = 2.0 * (m_startingPose.orientation.w * m_startingPose.orientation.z);
+    double cosy = 1.0 - 2.0 * (m_startingPose.orientation.z * m_startingPose.orientation.z);
+    double startingYaw = std::atan2(siny, cosy);
+    double newYaw = startingYaw + d_yaw(gen);
+    m_startingPose.orientation.w = std::cos(newYaw / 2.0);
+    m_startingPose.orientation.z = std::sin(newYaw / 2.0);
     m_currentPose = m_startingPose;
 }
 
 void Particle::updatePcState(const geometry_msgs::msg::Pose& odomDistanceUpdate, 
                              const std::vector<RfidTagPhase>& measuredPhase) {
     updatePcPose(odomDistanceUpdate);
+    for(auto it = m_pcPhasors.begin(); it != m_pcPhasors.end(); ) {
+        bool tagIdFound = false;
+        for(size_t i = 0; i < measuredPhase.size(); i++) {
+            if(measuredPhase[i].id == it->first) {
+                tagIdFound = true;
+                break;
+            }
+        }
+        if(!tagIdFound) {
+            // If the tag is not in the measured phases, we can remove it
+            it = m_pcPhasors.erase(it);
+        } else {
+            ++it;
+        }
+    }
     for(size_t i = 0; i < measuredPhase.size(); i++) {   
         geometry_msgs::msg::PoseStamped tagPose;
         if(!m_tagsInfo->getTagPoseFromId(measuredPhase[i].id, tagPose))  {
@@ -82,7 +102,9 @@ void Particle::computeLikelihood() {
         // Compute the new value of C
         if (phasor.measuredNorm > 0 && 
             phasor.computedNorm > 0) {
-            phasor.C = std::abs(phasor.scalarProduct) / std::sqrt(phasor.measuredNorm * phasor.computedNorm);
+            double alpha = 0.5;
+            double newC = std::abs(phasor.scalarProduct) / std::sqrt(phasor.measuredNorm * phasor.computedNorm);
+            phasor.C = alpha *phasor.C + (1 - alpha) * newC;
             numberOfValidC ++;
             totalC += phasor.C;
         } 

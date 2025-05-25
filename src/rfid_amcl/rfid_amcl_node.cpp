@@ -24,6 +24,7 @@ RfidAmclNode::RfidAmclNode() : Node("rfid_amcl") {
     this->declare_parameter<std::string>("odometry_topic", "/odom");
     this->declare_parameter<std::string>("tag_array_topic", "/rfid_tags");
     this->declare_parameter<std::string>("set_initial_pose_topic", "/initialpose");
+    this->declare_parameter<bool>("debug", false);
 
     // Get parameters
     double covx = this->get_parameter("covx").as_double();
@@ -58,6 +59,7 @@ RfidAmclNode::RfidAmclNode() : Node("rfid_amcl") {
     std::string odometry_topic = this->get_parameter("odometry_topic").as_string();
     std::string tag_array_topic = this->get_parameter("tag_array_topic").as_string();
     std::string set_initial_pose_topic = this->get_parameter("set_initial_pose_topic").as_string();
+    m_debug = this->get_parameter("debug").as_bool();
 
     // Create subscribers
     m_odometrySub = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -66,6 +68,8 @@ RfidAmclNode::RfidAmclNode() : Node("rfid_amcl") {
         tag_array_topic, 10, std::bind(&RfidAmclNode::tagArrayCallback, this, std::placeholders::_1));
     m_initialPoseSub = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
         set_initial_pose_topic, 10, std::bind(&RfidAmclNode::initialPoseCallback, this, std::placeholders::_1));
+    m_particlesPub = this->create_publisher<visualization_msgs::msg::MarkerArray>("rfid_amcl/particles", 10);
+    
     m_particleFilter.init(min_particles, 
                           max_particles, 
                           covx, 
@@ -94,6 +98,9 @@ void RfidAmclNode::example_function() {
 void RfidAmclNode::step() {
     // m_particleFilter.step();
     geometry_msgs::msg::Pose mapPose = m_particleFilter.getBestParticlePose();
+    if(m_debug) {
+        publishParticles(m_particleFilter.getParticles());
+    }
     publishTf(mapPose);
 }
 
@@ -155,6 +162,42 @@ void RfidAmclNode::publishTf(geometry_msgs::msg::Pose mapPose) {
 
     // Publish the transform
     m_tfBroadcaster->sendTransform(map_to_odom_msg);
+}
+
+void RfidAmclNode::publishParticles(std::vector<Particle>& particles) {
+    visualization_msgs::msg::MarkerArray markerArray;
+    // Clear old markers
+    visualization_msgs::msg::Marker clearMarker;
+    clearMarker.action = visualization_msgs::msg::Marker::DELETEALL;
+    markerArray.markers.push_back(clearMarker);
+    int id = 0;
+    for (auto& particle : particles) {
+        visualization_msgs::msg::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = this->get_clock()->now();
+        marker.ns = "particles";
+        marker.id = id;
+        marker.type = visualization_msgs::msg::Marker::ARROW;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        marker.pose = particle.getCurrentPose();
+        marker.scale.x = 0.1; // Size of the sphere
+        marker.scale.y = 0.1;
+        marker.scale.z = 0.1;
+        marker.color.r = 0.0f; // Color of the sphere
+        marker.color.g = 0.0f;
+        marker.color.b = 1.0f;
+        marker.color.a = 1.0f; // Opacity
+        if(id == 0) {
+            marker.color.g = 1.0f;
+            marker.color.b = 0.0f;
+        }
+        marker.lifetime.sec = 0; // Marker will not expire
+        marker.lifetime.nanosec = 0;
+
+        markerArray.markers.push_back(marker);
+        id++;
+    }
+    m_particlesPub->publish(markerArray);
 }
 
 

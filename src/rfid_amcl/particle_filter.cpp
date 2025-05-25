@@ -77,7 +77,7 @@ geometry_msgs::msg::Pose ParticleFilter::getBestParticlePose() {
         return a.getLikelihood() > b.getLikelihood();
     });
     if(m_particles.size() > 0) {
-        std::cout << "best likelihood = " << m_particles[0].getLikelihood() << std::endl; 
+        // std::cout << "best likelihood = " << m_particles[0].getLikelihood() << std::endl; 
         m_bestPose.pose = m_particles[0].getCurrentPose();
     }
     return m_bestPose.pose;
@@ -86,9 +86,9 @@ geometry_msgs::msg::Pose ParticleFilter::getBestParticlePose() {
 //PRIVATE FUNCTIONS 
 
 void ParticleFilter::resample() {
-    std::sort(m_particles.begin(), m_particles.end(), [](Particle& a, Particle& b) {
-        return a.getLikelihood() > b.getLikelihood();
-    });
+    // std::sort(m_particles.begin(), m_particles.end(), [](Particle& a, Particle& b) {
+    //     return a.getLikelihood() > b.getLikelihood();
+    // });
     
     //build cumulative distribution
     std::vector<double> cumulative;

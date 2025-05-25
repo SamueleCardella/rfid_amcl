@@ -1,0 +1,89 @@
+/rfid_amcl:
+  ros__parameters:
+    use_sim_time: true
+    debug: true
+    tag_array_topic: /rfid/tag_array
+    covx: 0.02
+    covy: 0.02
+    cova: 0.03
+    distance_threshold: 1.0
+    min_particles: 500
+    max_particles: 600
+    tag_numbers: 14
+    tag_0: 
+      id: "01"
+      x: -0.758
+      y: 1.273
+      z: 0.05
+    tag_1: 
+      id: "02"
+      x: 2.407
+      y: 6.243
+      z: 1.158
+    tag_2: 
+      id: "03"
+      x: 2.29
+      y: 3.105
+      z: 1.158
+    tag_3: 
+      id: "04"
+      x: 2.758
+      y: 0.154
+      z: 1.158
+    tag_4: 
+      id: "05"
+      x: 2.762
+      y: -3.453
+      z: 1.158
+    tag_5: 
+      id: "06"
+      x: 2.777
+      y: -7.173
+      z: 1.158
+    tag_6: 
+      id: "07"
+      x: -4.72
+      y: -9.857
+      z: 1.158
+    tag_7: 
+      id: "08"
+      x: -4.735
+      y: -5.459
+      z: 1.158
+    tag_8: 
+      id: "09"
+      x: -4.693
+      y: -1.053
+      z: 1.158
+    tag_9: 
+      id: "10"
+      x: -4.711
+      y: 3.428
+      z: 1.158
+    tag_10: 
+      id: "11"
+      x: -4.735
+      y: 7.994
+      z: 1.158
+    tag_11: 
+      id: "12"
+      x: -1.260
+      y: 4.849
+      z: 0.917
+    tag_12: 
+      id: "13"
+      x: -0.701
+      y: 8.552
+      z: 1.188
+    tag_13: 
+      id: "14"
+      x: -1.33
+      y: -7.037
+      z: 1.188
+
+/map_server:
+  ros__parameters:
+    use_sim_time: True
+    # Overridden in launch by the "map" launch configuration or provided default value.
+    # To use in yaml, remove the default "map" value in the tb3_simulation_launch.py file & provide full path to map below.
+    yaml_filename: "/home/ws/src/data/worlds/0/map.yaml"

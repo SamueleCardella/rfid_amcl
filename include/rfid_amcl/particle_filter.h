@@ -59,4 +59,8 @@ public:
 
     geometry_msgs::msg::Pose getBestParticlePose(); 
     // void set
+
+    std::vector<Particle>& getParticles() {
+        return m_particles;
+    }
 };

@@ -5,6 +5,7 @@ project(rfid_amcl_node)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rfid_msgs REQUIRED)
@@ -23,10 +24,10 @@ add_executable(rfid_amcl_node
   src/rfid_amcl/particle_filter.cpp
   src/rfid_amcl/particle.cpp
 )
-
 ament_target_dependencies(rfid_amcl_node 
                           rclcpp 
                           geometry_msgs
+                          visualization_msgs
                           std_msgs
                           nav_msgs
                           rfid_msgs
@@ -38,6 +39,16 @@ ament_target_dependencies(rfid_amcl_node
 install(TARGETS
   rfid_amcl_node
   DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install launch files
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# Install params folder
+install(DIRECTORY params/
+  DESTINATION share/${PROJECT_NAME}/params
 )
 
 # Install header files
