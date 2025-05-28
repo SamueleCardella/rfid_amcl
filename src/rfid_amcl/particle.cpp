@@ -28,9 +28,7 @@ void Particle::spawnPc(const geometry_msgs::msg::Pose& startingPose,
     m_currentPose = m_startingPose;
 }
 
-void Particle::updatePcState(const geometry_msgs::msg::Pose& odomDistanceUpdate, 
-                             const std::vector<RfidTagPhase>& measuredPhase) {
-    updatePcPose(odomDistanceUpdate);
+void Particle::updatePcState(const std::vector<RfidTagPhase>& measuredPhase) {
     for(auto it = m_pcPhasors.begin(); it != m_pcPhasors.end(); ) {
         bool tagIdFound = false;
         for(size_t i = 0; i < measuredPhase.size(); i++) {
@@ -118,7 +116,20 @@ void Particle::computeLikelihood() {
 }
 
 void Particle::updatePcPose(const geometry_msgs::msg::Pose& poseUpdate) {
-    m_currentPose.position.x = m_startingPose.position.x + poseUpdate.position.x;
-    m_currentPose.position.y = m_startingPose.position.y + poseUpdate.position.y;
-    m_currentPose.orientation.z = m_startingPose.orientation.z + poseUpdate.orientation.z;
+    // Rotate poseUpdate by the orientation of m_currentPose
+    double sinYaw = 2.0 * (m_currentPose.orientation.w * m_currentPose.orientation.z);
+    double cosYaw = 1.0 - 2.0 * (m_currentPose.orientation.z * m_currentPose.orientation.z);
+    double yaw = std::atan2(sinYaw, cosYaw);
+
+    double rotatedX = poseUpdate.position.x * std::cos(yaw) - poseUpdate.position.y * std::sin(yaw);
+    double rotatedY = poseUpdate.position.x * std::sin(yaw) + poseUpdate.position.y * std::cos(yaw);
+
+    // Update the current pose
+    m_currentPose.position.x += rotatedX;
+    m_currentPose.position.y += rotatedY;
+
+    double deltaYaw = 2.0 * std::atan2(poseUpdate.orientation.z, poseUpdate.orientation.w);
+    double newYaw = yaw + deltaYaw;
+    m_currentPose.orientation.w = std::cos(newYaw / 2.0);
+    m_currentPose.orientation.z = std::sin(newYaw / 2.0);
 }

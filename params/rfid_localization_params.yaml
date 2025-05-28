@@ -1,14 +1,14 @@
 /rfid_amcl:
   ros__parameters:
     use_sim_time: true
-    debug: true
+    debug: false
     tag_array_topic: /rfid/tag_array
-    covx: 0.02
-    covy: 0.02
-    cova: 0.03
-    distance_threshold: 1.0
-    min_particles: 500
-    max_particles: 600
+    covx: 0.03
+    covy: 0.03
+    cova: 0.01
+    distance_threshold: 2.0
+    min_particles: 800
+    max_particles: 1000
     tag_numbers: 14
     tag_0: 
       id: "01"

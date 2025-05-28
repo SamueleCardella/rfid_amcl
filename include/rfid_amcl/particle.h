@@ -30,8 +30,6 @@ private:
     RfidTagsInfo* m_tagsInfo;
     double m_likelihood;
 
-    void updatePcPose(const geometry_msgs::msg::Pose& poseUpdate);
-
     void computeLikelihood();
 
 public:
@@ -42,10 +40,11 @@ public:
                  const double& covy, 
                  const double& cova);
 
-    void updatePcState(const geometry_msgs::msg::Pose& odomDistanceUpdate, 
-                       const std::vector<RfidTagPhase>& measuredPhase);
+    void updatePcState(const std::vector<RfidTagPhase>& measuredPhase);
 
     double getLikelihood(){return m_likelihood;};
+
+    void updatePcPose(const geometry_msgs::msg::Pose& poseUpdate);
 
     geometry_msgs::msg::Pose getCurrentPose(){return m_currentPose;};
 };

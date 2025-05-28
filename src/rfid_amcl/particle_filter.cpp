@@ -38,6 +38,9 @@ void ParticleFilter::odomUpdate(const std::shared_ptr<nav_msgs::msg::Odometry>& 
     if(m_running) {    
         m_motionModel->updateMotionModelOdometry(odomUpdate);
         m_currentOdom = odomUpdate;
+        for(auto& particle : m_particles) {
+            particle.updatePcPose(m_motionModel->getLocalDistance().pose);
+        }
         if(m_motionModel->getTravelledDistance() >= m_distanceTh) {
             m_motionModel->resetDistance();
             resample();
@@ -76,9 +79,42 @@ geometry_msgs::msg::Pose ParticleFilter::getBestParticlePose() {
     std::sort(m_particles.begin(), m_particles.end(), [](Particle& a, Particle& b) {
         return a.getLikelihood() > b.getLikelihood();
     });
-    if(m_particles.size() > 0) {
+    size_t numParticles = m_particles.size();
+    if(numParticles > 0) {
         // std::cout << "best likelihood = " << m_particles[0].getLikelihood() << std::endl; 
-        m_bestPose.pose = m_particles[0].getCurrentPose();
+        geometry_msgs::msg::Pose weightedMeanPose;
+        double totalWeight = 0.0;
+        double sumX = 0.0, sumY = 0.0, sumTheta = 0.0;
+
+        size_t topParticles = std::max(static_cast<size_t>(1), numParticles / 10); // Top 10% or at least 1 particle
+        for (size_t i = 0; i < topParticles; ++i) {
+            double weight = m_particles[i].getLikelihood();
+            totalWeight += weight;
+
+            const auto& pose = m_particles[i].getCurrentPose();
+            sumX += weight * pose.position.x;
+            sumY += weight * pose.position.y;
+            double siny_cosp = 2.0 * (pose.orientation.w * pose.orientation.z + pose.orientation.x * pose.orientation.y);
+            double cosy_cosp = 1.0 - 2.0 * (pose.orientation.y * pose.orientation.y + pose.orientation.z * pose.orientation.z);
+            double theta = std::atan2(siny_cosp, cosy_cosp);
+            sumTheta += weight * theta;
+        }
+
+        if (totalWeight > 0.0) {
+            weightedMeanPose.position.x = sumX / totalWeight;
+            weightedMeanPose.position.y = sumY / totalWeight;
+            double avgTheta = sumTheta / totalWeight;
+            weightedMeanPose.orientation.x = 0.0;
+            weightedMeanPose.orientation.y = 0.0;
+            weightedMeanPose.orientation.z = std::sin(avgTheta / 2.0);
+            weightedMeanPose.orientation.w = std::cos(avgTheta / 2.0);
+        } 
+        else {
+            weightedMeanPose = m_particles[0].getCurrentPose(); // Fallback to the best particle
+        }
+
+        m_bestPose.pose = weightedMeanPose;
+        // m_bestPose.pose = m_particles[0].getCurrentPose();
     }
     return m_bestPose.pose;
 }
@@ -150,6 +186,6 @@ void ParticleFilter::updatePcState() {
         measuredPhase[i].id = m_currentRfidTagArray->tags[i].id;
     }
     for(auto& particle : m_particles) {
-        particle.updatePcState(m_motionModel->getLocalDistance().pose,measuredPhase);
+        particle.updatePcState(measuredPhase);
     }
 }
