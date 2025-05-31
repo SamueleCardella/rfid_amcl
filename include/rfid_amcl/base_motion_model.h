@@ -33,6 +33,6 @@ public:
         m_travelledDistance = 0.0;
     }
 
-    virtual void updateMotionModelOdometry(std::shared_ptr<nav_msgs::msg::Odometry> odom){};
+    virtual bool updateMotionModelOdometry(std::shared_ptr<nav_msgs::msg::Odometry> odom){};
 };
 

@@ -100,7 +100,8 @@ void Particle::computeLikelihood() {
         // Compute the new value of C
         if (phasor.measuredNorm > 0 && 
             phasor.computedNorm > 0) {
-            double alpha = 0.5;
+            // double alpha = 0.5;
+            double alpha = 0.0;
             double newC = std::abs(phasor.scalarProduct) / std::sqrt(phasor.measuredNorm * phasor.computedNorm);
             phasor.C = alpha *phasor.C + (1 - alpha) * newC;
             numberOfValidC ++;

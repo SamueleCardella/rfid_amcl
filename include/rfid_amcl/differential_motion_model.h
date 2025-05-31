@@ -9,5 +9,5 @@ public:
     DifferentialMotionModel(double currentTime, 
         std::shared_ptr<geometry_msgs::msg::TransformStamped> mapToBlTf);
 
-    virtual void updateMotionModelOdometry(std::shared_ptr<nav_msgs::msg::Odometry> odom) override;
+    virtual bool updateMotionModelOdometry(std::shared_ptr<nav_msgs::msg::Odometry> odom) override;
 };

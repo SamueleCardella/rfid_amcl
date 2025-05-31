@@ -8,7 +8,8 @@ DifferentialMotionModel::DifferentialMotionModel(double currentTime,
 
 }
 
-void DifferentialMotionModel::updateMotionModelOdometry(std::shared_ptr<nav_msgs::msg::Odometry> odom) {
+bool DifferentialMotionModel::updateMotionModelOdometry(std::shared_ptr<nav_msgs::msg::Odometry> odom) {
+    bool retVal = true;
     auto new_time = odom->header.stamp.sec + odom->header.stamp.nanosec * 1e-9;
     double time_difference = new_time - m_currentTime;
     double deltaYaw = odom->twist.twist.angular.z * time_difference;
@@ -19,4 +20,10 @@ void DifferentialMotionModel::updateMotionModelOdometry(std::shared_ptr<nav_msgs
     m_localDistance.pose.orientation.w = cos(deltaYaw / 2.0);
     m_localDistance.pose.orientation.z = sin(deltaYaw / 2.0);
     m_travelledDistance += sqrt(deltaX * deltaX + deltaY * deltaY);m_currentTime = new_time;
+    if(fabs(odom->twist.twist.linear.x) <= 0.001 && 
+       fabs(odom->twist.twist.linear.y) <= 0.001 && 
+       fabs(odom->twist.twist.angular.z) <= 0.001) {
+        retVal = false;
+    }
+    return retVal;
 }

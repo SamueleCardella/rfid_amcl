@@ -127,6 +127,10 @@ void RfidAmclNode::publishTf(geometry_msgs::msg::Pose mapPose) {
     m_currentMapToBl->transform.translation.y = mapPose.position.y;
     m_currentMapToBl->transform.translation.z = mapPose.position.z;
     m_currentMapToBl->transform.rotation = mapPose.orientation;
+    // std::cout << "Publishing transform from map to base_link: " 
+            //   << m_currentMapToBl->transform.translation.x << ", "
+            //   << m_currentMapToBl->transform.translation.y << ", "
+            //   << m_currentMapToBl->transform.translation.z << std::endl;
 
     geometry_msgs::msg::TransformStamped odom_to_base_link;
     try {

@@ -32,11 +32,15 @@ void ParticleFilter::init(const uint16_t& minParticleNumber,
     m_distanceTh = distanceThreshold;
     double currentTime = rclcpp::Clock().now().seconds();
     m_motionModel = std::make_shared<DifferentialMotionModel>(currentTime,mapToBlTf);
+    m_currentOdom = std::make_shared<nav_msgs::msg::Odometry>();
+    m_currentRfidTagArray = std::make_shared<rfid_msgs::msg::TagArray>();
 }
 
 void ParticleFilter::odomUpdate(const std::shared_ptr<nav_msgs::msg::Odometry>& odomUpdate) {
     if(m_running) {    
-        m_motionModel->updateMotionModelOdometry(odomUpdate);
+        if(!m_motionModel->updateMotionModelOdometry(odomUpdate)) {
+            return; // No significant movement detected
+        }
         m_currentOdom = odomUpdate;
         for(auto& particle : m_particles) {
             particle.updatePcPose(m_motionModel->getLocalDistance().pose);
@@ -68,6 +72,7 @@ void ParticleFilter::start(const std::shared_ptr<geometry_msgs::msg::Pose>& init
     for(auto& particle : m_particles) {
         particle.spawnPc(*initialPose, m_covx, m_covy, m_cova);
     }
+    m_bestPose.pose = *initialPose;
     m_running = true;
 }
 
@@ -81,14 +86,18 @@ geometry_msgs::msg::Pose ParticleFilter::getBestParticlePose() {
     });
     size_t numParticles = m_particles.size();
     if(numParticles > 0) {
-        // std::cout << "best likelihood = " << m_particles[0].getLikelihood() << std::endl; 
-        geometry_msgs::msg::Pose weightedMeanPose;
+        // std::cout << "best likelihood = " << m_particles[0].getLikelihood() << std::endl;
         double totalWeight = 0.0;
-        double sumX = 0.0, sumY = 0.0, sumTheta = 0.0;
+        double sumX = 0.0, sumY = 0.0;
+        double sumSinTheta = 0.0;
+        double sumCosTheta = 0.0;
 
         size_t topParticles = std::max(static_cast<size_t>(1), numParticles / 10); // Top 10% or at least 1 particle
         for (size_t i = 0; i < topParticles; ++i) {
             double weight = m_particles[i].getLikelihood();
+            if(weight <= 0.1) {
+                continue;
+            }
             totalWeight += weight;
 
             const auto& pose = m_particles[i].getCurrentPose();
@@ -97,23 +106,24 @@ geometry_msgs::msg::Pose ParticleFilter::getBestParticlePose() {
             double siny_cosp = 2.0 * (pose.orientation.w * pose.orientation.z + pose.orientation.x * pose.orientation.y);
             double cosy_cosp = 1.0 - 2.0 * (pose.orientation.y * pose.orientation.y + pose.orientation.z * pose.orientation.z);
             double theta = std::atan2(siny_cosp, cosy_cosp);
-            sumTheta += weight * theta;
+            // Convert angle to unit vector components
+            double sinTheta = std::sin(theta);
+            double cosTheta = std::cos(theta);
+            sumSinTheta += weight * sinTheta;
+            sumCosTheta += weight * cosTheta;
         }
-
-        if (totalWeight > 0.0) {
-            weightedMeanPose.position.x = sumX / totalWeight;
-            weightedMeanPose.position.y = sumY / totalWeight;
-            double avgTheta = sumTheta / totalWeight;
-            weightedMeanPose.orientation.x = 0.0;
-            weightedMeanPose.orientation.y = 0.0;
-            weightedMeanPose.orientation.z = std::sin(avgTheta / 2.0);
-            weightedMeanPose.orientation.w = std::cos(avgTheta / 2.0);
+        if (totalWeight > 0.1) {
+            m_bestPose.pose.position.x = sumX / totalWeight;
+            m_bestPose.pose.position.y = sumY / totalWeight;
+            double avgTheta = std::atan2(sumSinTheta / totalWeight, sumCosTheta / totalWeight);
+            m_bestPose.pose.orientation.x = 0.0;
+            m_bestPose.pose.orientation.y = 0.0;
+            m_bestPose.pose.orientation.z = std::sin(avgTheta / 2.0);
+            m_bestPose.pose.orientation.w = std::cos(avgTheta / 2.0);
         } 
-        else {
-            weightedMeanPose = m_particles[0].getCurrentPose(); // Fallback to the best particle
-        }
-
-        m_bestPose.pose = weightedMeanPose;
+        // else {
+        //     m_bestPose.pose = m_particles[0].getCurrentPose(); // Fallback to the best particle
+        // }
         // m_bestPose.pose = m_particles[0].getCurrentPose();
     }
     return m_bestPose.pose;
